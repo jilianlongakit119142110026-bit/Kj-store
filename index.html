@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>kylejilian | KJ Official Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Map Checkout -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#ee4d2d', // Shopee / TikTok vibrant coral red
+                            600: '#d73211',
+                            700: '#b91c1c',
+                        },
+                        gold: '#ffce3d'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .product-card-shadow {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .product-card-shadow:active {
+            transform: scale(0.98);
+        }
+        #checkoutMap {
+            height: 220px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+        .modal-blur {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 pb-20 md:pb-6">
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-40 bg-brand-500 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('home')">
+                <div class="bg-white text-brand-500 font-extrabold text-xl w-9 h-9 rounded-lg flex items-center justify-center shadow-inner tracking-tighter">
+                    KJ
+                </div>
+                <div>
+                    <h1 class="font-black text-xl tracking-tight leading-none">kylejilian</h1>
+                    <span class="text-[10px] bg-yellow-300 text-brand-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Official Store</span>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md relative hidden sm:block">
+                <input type="text" id="searchInput" oninput="renderProducts()" placeholder="Search in kylejilian store..." class="w-full pl-9 pr-4 py-2 rounded-full text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300 shadow-inner">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center gap-4">
+                <!-- Notifications Button -->
+                <button onclick="toggleNotifications()" class="relative p-1.5 hover:bg-white/10 rounded-full transition">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <span id="notifBadge" class="hidden absolute -top-1 -right-1 bg-yellow-300 text-brand-700 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                </button>
+
+                <!-- Cart Button -->
+                <button onclick="switchTab('cart')" class="relative p-1.5 hover:bg-white/10 rounded-full transition">
+                    <i class="fa-solid fa-cart-shopping text-xl"></i>
+                    <span id="cartBadge" class="absolute -top-1 -right-1 bg-white text-brand-600 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow">0</span>
+                </button>
+
+                <!-- Account Avatar -->
+                <button onclick="switchTab('account')" class="flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded-full hover:bg-white/20 transition">
+                    <i class="fa-solid fa-circle-user text-xl"></i>
+                    <span id="headerUserName" class="text-xs font-semibold hidden md:inline">Guest</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar -->
+        <div class="px-4 pb-2.5 sm:hidden">
+            <div class="relative">
+                <input type="text" id="mobileSearchInput" oninput="syncMobileSearch()" placeholder="Search items..." class="w-full pl-9 pr-4 py-1.5 rounded-full text-xs text-gray-800 bg-white focus:outline-none shadow-inner">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2 text-gray-400 text-xs"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-3 py-4">
+
+        <!-- TAB: HOME / CATALOG -->
+        <section id="tab-home" class="tab-content space-y-4">
+            
+            <!-- Hero Carousel / Banner -->
+            <div class="bg-gradient-to-r from-brand-600 to-rose-500 rounded-2xl p-4 md:p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="z-10 space-y-2 text-center md:text-left">
+                    <div class="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-yellow-300 border border-white/20">
+                        <i class="fa-solid fa-bolt"></i> MEGA SALE TODAY
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black tracking-tight">Up to 70% OFF Exclusive Deals</h2>
+                    <p class="text-xs md:text-sm text-rose-100 max-w-md">Free Shipping Vouchers Available • 100% Authentic Guaranteed Products directly from kylejilian</p>
+                    <div class="pt-2 flex flex-wrap gap-2 justify-center md:justify-start">
+                        <span class="bg-white text-brand-600 text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">⚡ Flash Deals</span>
+                        <span class="bg-yellow-300 text-brand-700 text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">🚚 ₱0 Shipping</span>
+                        <span class="bg-emerald-400 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">🛡️ Authentic</span>
+                    </div>
+                </div>
+                <div class="z-10 flex items-center justify-center bg-white/10 rounded-2xl p-3 border border-white/20 backdrop-blur-sm w-full md:w-auto">
+                    <div class="text-center px-4">
+                        <span class="text-xs uppercase font-semibold text-rose-200">Sale Ends In</span>
+                        <div class="flex items-center justify-center gap-1 mt-1 text-sm font-extrabold" id="countdownTimer">
+                            <span class="bg-slate-900 px-2 py-1 rounded text-white" id="timerH">04</span> :
+                            <span class="bg-slate-900 px-2 py-1 rounded text-white" id="timerM">28</span> :
+                            <span class="bg-slate-900 px-2 py-1 rounded text-white" id="timerS">45</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Horizontal Filter -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                <button onclick="filterCategory('All')" class="cat-btn active bg-brand-500 text-white px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition">All Items</button>
+                <button onclick="filterCategory('Fashion')" class="cat-btn bg-white text-gray-700 hover:bg-gray-200 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition">Fashion & Apparel</button>
+                <button onclick="filterCategory('Beauty')" class="cat-btn bg-white text-gray-700 hover:bg-gray-200 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition">Beauty & Skincare</button>
+                <button onclick="filterCategory('Gadgets')" class="cat-btn bg-white text-gray-700 hover:bg-gray-200 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition">Gadgets & Tech</button>
+                <button onclick="filterCategory('Lifestyle')" class="cat-btn bg-white text-gray-700 hover:bg-gray-200 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition">Home & Lifestyle</button>
+            </div>
+
+            <!-- Products Grid -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-extrabold text-gray-900 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-brand-500"></i> DAILY DISCOVER
+                    </h3>
+                    <span id="productCount" class="text-xs text-gray-500 font-medium">0 items found</span>
+                </div>
+                <div id="productsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+                    <!-- Products dynamically rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: SELLER STUDIO (PRODUCT MANAGEMENT) -->
+        <section id="tab-studio" class="tab-content hidden space-y-5">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fa-solid fa-store text-brand-500"></i> Seller Studio
+                        </h2>
+                        <p class="text-xs text-gray-500">Add products with gallery compressed photo uploads and manage store catalog.</p>
+                    </div>
+                    <button onclick="openAddProductModal()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus"></i> Add New Product
+                    </button>
+                </div>
+
+                <!-- Seller Inventory Table / Cards -->
+                <div id="sellerCatalog" class="space-y-3">
+                    <!-- Inventory items dynamically rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: CART & CHECKOUT -->
+        <section id="tab-cart" class="tab-content hidden space-y-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2 pb-3 border-b">
+                    <i class="fa-solid fa-cart-shopping text-brand-500"></i> Your Shopping Cart
+                </h2>
+
+                <div id="cartItemsContainer" class="space-y-3">
+                    <!-- Cart items rendered here -->
+                </div>
+
+                <!-- Cart Summary & Checkout Trigger -->
+                <div id="cartSummarySection" class="mt-6 pt-4 border-t space-y-3 hidden">
+                    <div class="flex justify-between text-sm text-gray-600">
+                        <span>Subtotal:</span>
+                        <span id="cartSubtotal" class="font-bold text-gray-900">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600">
+                        <span>Estimated Shipping:</span>
+                        <span id="cartShipping" class="font-bold text-emerald-600">₱45.00</span>
+                    </div>
+                    <div class="flex justify-between text-base font-extrabold text-gray-900 pt-2 border-t">
+                        <span>Total Payable:</span>
+                        <span id="cartTotal" class="text-brand-500 text-lg">₱0.00</span>
+                    </div>
+
+                    <button onclick="openCheckoutModal()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-credit-card"></i> Proceed to Checkout
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: ORDERS & TRACKING -->
+        <section id="tab-orders" class="tab-content hidden space-y-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2 pb-3 border-b">
+                    <i class="fa-solid fa-truck-fast text-brand-500"></i> My Orders & Real-time Tracking
+                </h2>
+
+                <div id="ordersList" class="space-y-4">
+                    <!-- Orders dynamically rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: ACCOUNT & CLOUD SYNC -->
+        <section id="tab-account" class="tab-content hidden space-y-4">
+            <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center gap-4 pb-4 border-b">
+                    <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h3 id="accountDisplayName" class="text-lg font-bold text-gray-900">Guest User</h3>
+                        <p id="accountEmailDisplay" class="text-xs text-gray-500">Logged in locally on this browser</p>
+                        <span id="syncStatusBadge" class="inline-block mt-1 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                            <i class="fa-solid fa-circle text-[8px] mr-1"></i> Local Storage Active
+                        </span>
+                    </div>
+                </div>
+
+                <div class="py-4 space-y-3">
+                    <button id="authModalBtn" onclick="openAuthModal()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs py-2.5 rounded-xl transition">
+                        Log In / Register Account
+                    </button>
+
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3">
+                        <h4 class="font-bold text-xs text-gray-800 uppercase tracking-wider flex items-center justify-between">
+                            <span><i class="fa-solid fa-cloud text-brand-500 mr-1.5"></i> Multi-Device Cloud Sync Settings</span>
+                            <span class="text-[10px] text-gray-400 font-normal">Optional</span>
+                        </h4>
+                        <p class="text-xs text-gray-500">Connect your Firebase credentials to automatically sync orders, catalog items, and accounts across all devices on GitHub Pages.</p>
+                        
+                        <div class="space-y-2 pt-1">
+                            <input type="text" id="fbApiKey" placeholder="Firebase API Key" class="w-full text-xs px-3 py-2 border rounded-lg bg-white">
+                            <input type="text" id="fbProjectId" placeholder="Firebase Project ID" class="w-full text-xs px-3 py-2 border rounded-lg bg-white">
+                            <button onclick="saveFirebaseSettings()" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg transition">
+                                Save & Connect Firebase Cloud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden px-2 py-1.5 flex justify-around items-center text-gray-500 shadow-lg">
+        <button onclick="switchTab('home')" class="nav-btn active flex flex-col items-center gap-0.5 text-brand-500">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="text-[10px] font-semibold">Home</span>
+        </button>
+        <button onclick="switchTab('studio')" class="nav-btn flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-store text-lg"></i>
+            <span class="text-[10px] font-semibold">Seller Studio</span>
+        </button>
+        <button onclick="switchTab('cart')" class="nav-btn flex flex-col items-center gap-0.5 relative">
+            <i class="fa-solid fa-cart-shopping text-lg"></i>
+            <span id="navCartBadge" class="absolute -top-1 right-2 bg-brand-500 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">0</span>
+            <span class="text-[10px] font-semibold">Cart</span>
+        </button>
+        <button onclick="switchTab('orders')" class="nav-btn flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-truck-fast text-lg"></i>
+            <span class="text-[10px] font-semibold">Orders</span>
+        </button>
+        <button onclick="switchTab('account')" class="nav-btn flex flex-col items-center gap-0.5">
+            <i class="fa-solid fa-user text-lg"></i>
+            <span class="text-[10px] font-semibold">Account</span>
+        </button>
+    </nav>
+
+    <!-- MODAL: PRODUCT DETAILS -->
+    <div id="productDetailModal" class="fixed inset-0 bg-black/60 z-50 hidden modal-blur flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto no-scrollbar relative flex flex-col">
+            <button onclick="closeModal('productDetailModal')" class="absolute top-3 right-3 z-20 bg-slate-900/50 hover:bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Product Main Photo Gallery -->
+            <div class="relative bg-gray-100 aspect-square sm:aspect-video w-full overflow-hidden">
+                <img id="modalMainImg" src="" alt="Product Image" class="w-full h-full object-contain">
+                <div id="modalThumbnails" class="absolute bottom-2 left-2 right-2 flex gap-1.5 overflow-x-auto no-scrollbar p-1">
+                    <!-- Thumbnails dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Detail Contents -->
+            <div class="p-4 sm:p-6 space-y-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span id="modalDiscountBadge" class="bg-brand-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded"></span>
+                        <span id="modalTagBadge" class="bg-yellow-100 text-yellow-800 font-bold text-[10px] px-2 py-0.5 rounded"></span>
+                    </div>
+                    <h2 id="modalTitle" class="text-lg sm:text-xl font-bold text-gray-900 leading-snug"></h2>
+                    
+                    <div class="flex items-baseline gap-2 pt-1">
+                        <span id="modalPrice" class="text-xl sm:text-2xl font-black text-brand-500"></span>
+                        <span id="modalOriginalPrice" class="text-xs text-gray-400 line-through"></span>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs text-gray-500 pt-1">
+                        <span class="flex items-center text-amber-400 font-bold">
+                            <i class="fa-solid fa-star mr-1"></i> <span id="modalRating">4.9</span>
+                        </span>
+                        <span>•</span>
+                        <span id="modalSold">1.2k sold</span>
+                        <span>•</span>
+                        <span id="modalStock" class="text-emerald-600 font-semibold">Stock: 45</span>
+                    </div>
+                </div>
+
+                <!-- Shipping Voucher Note -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3 text-xs text-emerald-800">
+                    <i class="fa-solid fa-truck-shield text-lg text-emerald-600"></i>
+                    <div>
+                        <p class="font-bold">Standard Delivery Vouchers Available</p>
+                        <p class="text-[11px] text-emerald-600">Get ₱0 shipping on orders above ₱249 • 3-5 days delivery</p>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <h4 class="font-bold text-xs uppercase text-gray-500 tracking-wider mb-1">Product Details</h4>
+                    <p id="modalDescription" class="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line"></p>
+                </div>
+
+                <!-- Customer Reviews Section -->
+                <div class="border-t pt-4 space-y-3">
+                    <h4 class="font-bold text-sm text-gray-900 flex items-center justify-between">
+                        <span>Customer Reviews (<span id="reviewCountDisplay">0</span>)</span>
+                        <button onclick="toggleReviewForm()" class="text-xs text-brand-500 hover:underline font-bold">+ Write Review</button>
+                    </h4>
+
+                    <!-- Add Review Box -->
+                    <div id="addReviewBox" class="hidden bg-gray-50 p-3 rounded-xl space-y-2 border border-gray-200">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold">Rating:</span>
+                            <select id="newReviewRating" class="text-xs border rounded p-1 bg-white">
+                                <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+                                <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                                <option value="3">⭐⭐⭐ 3 Stars</option>
+                            </select>
+                        </div>
+                        <textarea id="newReviewComment" rows="2" placeholder="Share your thoughts about this product..." class="w-full text-xs p-2 border rounded-lg bg-white"></textarea>
+                        <button onclick="submitReview()" class="bg-brand-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg">Submit Review</button>
+                    </div>
+
+                    <div id="modalReviewsList" class="space-y-2 max-h-40 overflow-y-auto no-scrollbar">
+                        <!-- Reviews dynamically injected -->
+                    </div>
+                </div>
+
+                <!-- Modal Footer Action -->
+                <div class="pt-3 border-t flex gap-2">
+                    <button onclick="addToCartFromModal()" class="flex-1 bg-brand-100 hover:bg-brand-200 text-brand-600 font-bold text-xs sm:text-sm py-3 rounded-xl transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                    </button>
+                    <button onclick="buyNowFromModal()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs sm:text-sm py-3 rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SELLER STUDIO ADD / EDIT PRODUCT -->
+    <div id="addProductModal" class="fixed inset-0 bg-black/60 z-50 hidden modal-blur flex items-center justify-center p-3">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto no-scrollbar space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h3 class="font-bold text-base text-gray-900" id="studioModalTitle">Add Product to kylejilian Catalog</h3>
+                <button onclick="closeModal('addProductModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="productForm" onsubmit="handleProductSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Product Title *</label>
+                    <input type="text" id="pTitle" required placeholder="e.g., Premium Aesthetic Korean Style Hoodie" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-brand-500 bg-white">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Price (₱) *</label>
+                        <input type="number" step="0.01" id="pPrice" required placeholder="299.00" class="w-full px-3 py-2 border rounded-xl bg-white">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Original Price (₱)</label>
+                        <input type="number" step="0.01" id="pOriginalPrice" placeholder="599.00" class="w-full px-3 py-2 border rounded-xl bg-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Category</label>
+                        <select id="pCategory" class="w-full px-3 py-2 border rounded-xl bg-white">
+                            <option value="Fashion">Fashion & Apparel</option>
+                            <option value="Beauty">Beauty & Skincare</option>
+                            <option value="Gadgets">Gadgets & Tech</option>
+                            <option value="Lifestyle">Home & Lifestyle</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Badge Tag</label>
+                        <select id="pTag" class="w-full px-3 py-2 border rounded-xl bg-white">
+                            <option value="Flash Sale">⚡ Flash Sale</option>
+                            <option value="Star Shop">⭐ Star Shop</option>
+                            <option value="Best Seller">🔥 Best Seller</option>
+                            <option value="Official Store">🛡️ Official Store</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Stock Count</label>
+                        <input type="number" id="pStock" value="50" class="w-full px-3 py-2 border rounded-xl bg-white">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Items Sold Initial</label>
+                        <input type="number" id="pSold" value="120" class="w-full px-3 py-2 border rounded-xl bg-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Description</label>
+                    <textarea id="pDescription" rows="3" placeholder="Write item features, materials, and sizing guide..." class="w-full px-3 py-2 border rounded-xl bg-white"></textarea>
+                </div>
+
+                <!-- Photo Gallery Picker + Canvas Compression Engine -->
+                <div class="space-y-1">
+                    <label class="block font-bold text-gray-700">
+                        Gallery Photos (Upload from Device) *
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 hover:border-brand-500 rounded-xl p-3 text-center cursor-pointer bg-gray-50 transition" onclick="document.getElementById('pPhotosInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
+                        <p class="text-xs text-gray-600 font-semibold">Click to select phone gallery photos</p>
+                        <p class="text-[10px] text-gray-400">Photos automatically resized & compressed to prevent storage crashes</p>
+                    </div>
+                    <input type="file" id="pPhotosInput" accept="image/*" multiple class="hidden" onchange="handleImageGalleryUpload(event)">
+                    
+                    <!-- Photos Preview Bar -->
+                    <div id="pPhotosPreview" class="flex gap-2 overflow-x-auto no-scrollbar pt-2"></div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="saveProductBtn" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs py-3 rounded-xl shadow-md transition">
+                        Save Product to Catalog
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CHECKOUT & INTERACTIVE MAP MAP LOCATION -->
+    <div id="checkoutModal" class="fixed inset-0 bg-black/60 z-50 hidden modal-blur flex items-center justify-center p-3">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto no-scrollbar space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h3 class="font-bold text-base text-gray-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-truck-ramp-box text-brand-500"></i> Delivery & Address Checkout
+                </h3>
+                <button onclick="closeModal('checkoutModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Interactive Leaflet Map -->
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-gray-700">Pin Your Shipping Location on Map</label>
+                <div id="checkoutMap"></div>
+                <p id="mapAddressText" class="text-[11px] text-gray-500 italic">Click on the map or drag the pin to set your delivery coordinates.</p>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Full Name *</label>
+                    <input type="text" id="cName" placeholder="e.g., Maria Santos" class="w-full px-3 py-2 border rounded-xl bg-white">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Phone Number *</label>
+                        <input type="tel" id="cPhone" placeholder="09171234567" class="w-full px-3 py-2 border rounded-xl bg-white">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">Payment Method</label>
+                        <select id="cPayment" class="w-full px-3 py-2 border rounded-xl bg-white">
+                            <option value="COD">Cash on Delivery (COD)</option>
+                            <option value="GCash">GCash E-Wallet</option>
+                            <option value="Card">Credit/Debit Card</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Detailed Address / House No. / Street</label>
+                    <input type="text" id="cAddress" placeholder="Unit 4B, Emerald Tower, Bonifacio Global City" class="w-full px-3 py-2 border rounded-xl bg-white">
+                </div>
+
+                <div class="bg-brand-50 p-3 rounded-xl space-y-1 text-brand-800 border border-brand-200">
+                    <div class="flex justify-between font-bold text-xs">
+                        <span>Estimated Delivery:</span>
+                        <span id="deliveryEstDate">Oct 16 - Oct 18</span>
+                    </div>
+                    <p class="text-[11px] text-brand-600">Shipped directly via kylejilian Express Express Logistics</p>
+                </div>
+
+                <button onclick="placeOrder()" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm py-3 rounded-xl shadow-lg transition">
+                    Confirm & Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AUTH / LOGIN -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 z-50 hidden modal-blur flex items-center justify-center p-3">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h3 class="font-bold text-base text-gray-900" id="authTitle">Log In to kylejilian</h3>
+                <button onclick="closeModal('authModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="authEmail" placeholder="yourname@gmail.com" class="w-full px-3 py-2 border rounded-xl bg-white">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Password</label>
+                    <input type="password" id="authPassword" placeholder="••••••••" class="w-full px-3 py-2 border rounded-xl bg-white">
+                </div>
+
+                <button onclick="handleAuthSubmit()" class="w-full bg-brand-500 text-white font-bold py-2.5 rounded-xl shadow transition">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATIONS DRAWER -->
+    <div id="notifDrawer" class="fixed top-14 right-3 z-50 bg-white w-72 sm:w-80 rounded-2xl shadow-2xl border border-gray-200 hidden p-3 space-y-2">
+        <div class="flex justify-between items-center pb-2 border-b">
+            <h4 class="font-bold text-xs text-gray-800">Notifications</h4>
+            <button onclick="toggleNotifications()" class="text-xs text-gray-400 hover:text-gray-600">Close</button>
+        </div>
+        <div id="notifList" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar text-xs">
+            <!-- Notifications injected -->
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // Default initial products catalog
+        const INITIAL_PRODUCTS = [
+            {
+                id: 'prod_1',
+                title: 'kylejilian Aesthetic Oversized Streetwear Hoodie',
+                price: 389.00,
+                originalPrice: 799.00,
+                category: 'Fashion',
+                tag: 'Flash Sale',
+                stock: 85,
+                sold: 1420,
+                rating: 4.9,
+                description: 'Premium heavyweight cotton fleece hoodie. Perfect for cold weather and casual streetwear outfit aesthetics.',
+                photos: ['https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&q=80'],
+                reviews: [
+                    { name: 'Kyla M.', rating: 5, comment: 'Super soft material and exact fit! Recommended seller.' }
+                ]
+            },
+            {
+                id: 'prod_2',
+                title: 'KJ Hydrating Lip Glow Oil & Tint Set',
+                price: 149.00,
+                originalPrice: 350.00,
+                category: 'Beauty',
+                tag: 'Best Seller',
+                stock: 200,
+                sold: 3890,
+                rating: 4.8,
+                description: 'Non-sticky formula enriched with jojoba oil and vitamin E for plumper, moisturized lips all day.',
+                photos: ['https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=800&q=80'],
+                reviews: []
+            },
+            {
+                id: 'prod_3',
+                title: 'Wireless Active Noise Cancelling Earbuds',
+                price: 599.00,
+                originalPrice: 1299.00,
+                category: 'Gadgets',
+                tag: 'Official Store',
+                stock: 40,
+                sold: 890,
+                rating: 4.7,
+                description: 'Crystal clear HD sound with 30-hour playback case and instant Bluetooth 5.3 pairing.',
+                photos: ['https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80'],
+                reviews: []
+            }
+        ];
+
+        // State Variables
+        let products = [];
+        let cart = [];
+        let orders = [];
+        let notifications = [];
+        let currentUser = null;
+        let selectedProductForModal = null;
+        let studioUploadedPhotos = [];
+        let leafletMap = null;
+        let leafletMarker = null;
+        let activeCategory = 'All';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initAppStorage();
+            startCountdown();
+            renderProducts();
+            updateCartBadge();
+            renderOrders();
+            setupMap();
+
+            // Push initial welcome notification
+            addNotification('Welcome to kylejilian Official Store! Enjoy ₱0 free shipping on your first purchase.');
+        });
+
+        function initAppStorage() {
+            try {
+                const storedProducts = localStorage.getItem('kj_products');
+                if (storedProducts) {
+                    products = JSON.parse(storedProducts);
+                } else {
+                    products = [...INITIAL_PRODUCTS];
+                    saveProductsToStorage();
+                }
+
+                const storedCart = localStorage.getItem('kj_cart');
+                if (storedCart) cart = JSON.parse(storedCart);
+
+                const storedOrders = localStorage.getItem('kj_orders');
+                if (storedOrders) orders = JSON.parse(storedOrders);
+
+                const storedUser = localStorage.getItem('kj_user');
+                if (storedUser) {
+                    currentUser = JSON.parse(storedUser);
+                    updateAccountUI();
+                }
+            } catch (e) {
+                console.error('Storage initialization fallback error', e);
+                products = [...INITIAL_PRODUCTS];
+            }
+        }
+
+        function saveProductsToStorage() {
+            try {
+                localStorage.setItem('kj_products', JSON.stringify(products));
+            } catch (e) {
+                console.warn('LocalStorage quota limit warning caught', e);
+            }
+        }
+
+        function saveCartToStorage() {
+            localStorage.setItem('kj_cart', JSON.stringify(cart));
+            updateCartBadge();
+        }
+
+        function saveOrdersToStorage() {
+            localStorage.setItem('kj_orders', JSON.stringify(orders));
+            renderOrders();
+        }
+
+        // MANDATORY Canvas Image Compression algorithm to prevent QuotaExceededError on GitHub Pages
+        function compressImage(file, maxWidth = 800, quality = 0.7) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Output JPEG compressed data URL string
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedDataUrl);
+                    };
+                };
+            });
+        }
+
+        async function handleImageGalleryUpload(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            const previewContainer = document.getElementById('pPhotosPreview');
+            
+            for (const file of files) {
+                const compressedDataUrl = await compressImage(file, 800, 0.7);
+                studioUploadedPhotos.push(compressedDataUrl);
+
+                // Render Preview Box
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'relative w-14 h-14 rounded-lg overflow-hidden border bg-gray-100 flex-shrink-0';
+                thumbDiv.innerHTML = `
+                    <img src="${compressedDataUrl}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeUploadedPhoto(${studioUploadedPhotos.length - 1})" class="absolute top-0 right-0 bg-red-600 text-white w-4 h-4 text-[9px] rounded-bl flex items-center justify-center">
+                        ✕
+                    </button>
+                `;
+                previewContainer.appendChild(thumbDiv);
+            }
+        }
+
+        function removeUploadedPhoto(index) {
+            studioUploadedPhotos.splice(index, 1);
+            const previewContainer = document.getElementById('pPhotosPreview');
+            previewContainer.innerHTML = '';
+            studioUploadedPhotos.forEach((src, idx) => {
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'relative w-14 h-14 rounded-lg overflow-hidden border bg-gray-100 flex-shrink-0';
+                thumbDiv.innerHTML = `
+                    <img src="${src}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeUploadedPhoto(${idx})" class="absolute top-0 right-0 bg-red-600 text-white w-4 h-4 text-[9px] rounded-bl flex items-center justify-center">
+                        ✕
+                    </button>
+                `;
+                previewContainer.appendChild(thumbDiv);
+            });
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            const searchVal = (document.getElementById('searchInput').value || '').toLowerCase();
+            
+            grid.innerHTML = '';
+
+            const filtered = products.filter(p => {
+                const matchesCat = activeCategory === 'All' || p.category === activeCategory;
+                const matchesSearch = p.title.toLowerCase().includes(searchVal);
+                return matchesCat && matchesSearch;
+            });
+
+            document.getElementById('productCount').textContent = `${filtered.length} items found`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-gray-400 space-y-2">
+                        <i class="fa-solid fa-box-open text-4xl"></i>
+                        <p class="text-sm">No products found matching your search.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const discount = p.originalPrice ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl overflow-hidden product-card-shadow flex flex-col justify-between cursor-pointer border border-gray-100';
+                card.onclick = () => openProductModal(p.id);
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Thumbnail Image Container -->
+                        <div class="relative aspect-square w-full bg-gray-100 overflow-hidden">
+                            <img src="${p.photos[0] || 'https://via.placeholder.com/300'}" alt="${p.title}" class="w-full h-full object-cover hover:scale-105 transition duration-300">
+                            ${discount > 0 ? `<span class="absolute top-1.5 left-1.5 bg-brand-500 text-white font-extrabold text-[10px] px-1.5 py-0.5 rounded shadow">- ${discount}%</span>` : ''}
+                            <span class="absolute bottom-1.5 right-1.5 bg-black/60 backdrop-blur text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                                🚚 Free Shipping
+                            </span>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-2.5 space-y-1.5">
+                            <h4 class="text-xs font-semibold text-gray-800 line-clamp-2 leading-tight">${p.title}</h4>
+                            
+                            <div class="flex items-center gap-1">
+                                <span class="bg-yellow-100 text-brand-700 font-extrabold text-[9px] px-1 rounded">${p.tag || 'Hot'}</span>
+                            </div>
+
+                            <div class="flex items-baseline gap-1 pt-0.5">
+                                <span class="text-xs text-brand-500 font-black">₱</span>
+                                <span class="text-sm sm:text-base text-brand-500 font-extrabold">${p.price.toFixed(2)}</span>
+                                ${p.originalPrice ? `<span class="text-[10px] text-gray-400 line-through">₱${p.originalPrice.toFixed(2)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 pt-0 flex items-center justify-between text-[10px] text-gray-400">
+                        <span class="flex items-center text-amber-400 font-bold">
+                            <i class="fa-solid fa-star text-[9px] mr-0.5"></i> ${p.rating || 4.8}
+                        </span>
+                        <span>${p.sold || 0} sold</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterCategory(catName) {
+            activeCategory = catName;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if (btn.textContent.includes(catName) || (catName === 'All' && btn.textContent.includes('All'))) {
+                    btn.className = 'cat-btn bg-brand-500 text-white px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition';
+                } else {
+                    btn.className = 'cat-btn bg-white text-gray-700 hover:bg-gray-200 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition';
+                }
+            });
+            renderProducts();
+        }
+
+        function syncMobileSearch() {
+            const val = document.getElementById('mobileSearchInput').value;
+            document.getElementById('searchInput').value = val;
+            renderProducts();
+        }
+
+        function openProductModal(prodId) {
+            const p = products.find(item => item.id === prodId);
+            if (!p) return;
+
+            selectedProductForModal = p;
+
+            document.getElementById('modalMainImg').src = p.photos[0] || 'https://via.placeholder.com/400';
+            document.getElementById('modalTitle').textContent = p.title;
+            document.getElementById('modalPrice').textContent = `₱${p.price.toFixed(2)}`;
+            document.getElementById('modalOriginalPrice').textContent = p.originalPrice ? `₱${p.originalPrice.toFixed(2)}` : '';
+            document.getElementById('modalRating').textContent = p.rating || 4.9;
+            document.getElementById('modalSold').textContent = `${p.sold || 0} sold`;
+            document.getElementById('modalStock').textContent = `Stock: ${p.stock || 0}`;
+            document.getElementById('modalDescription').textContent = p.description || 'No detailed description available.';
+            document.getElementById('modalTagBadge').textContent = p.tag || 'Official Item';
+
+            const discount = p.originalPrice ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0;
+            document.getElementById('modalDiscountBadge').textContent = discount > 0 ? `${discount}% OFF` : 'SPECIAL DEAL';
+
+            // Render Thumbnails
+            const thumbContainer = document.getElementById('modalThumbnails');
+            thumbContainer.innerHTML = '';
+            p.photos.forEach((src, idx) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'w-10 h-10 object-cover rounded-md cursor-pointer border-2 border-white shadow';
+                img.onclick = () => { document.getElementById('modalMainImg').src = src; };
+                thumbContainer.appendChild(img);
+            });
+
+            // Render Reviews
+            renderReviews(p);
+
+            document.getElementById('productDetailModal').classList.remove('hidden');
+        }
+
+        function renderReviews(p) {
+            const reviewsList = document.getElementById('modalReviewsList');
+            const reviews = p.reviews || [];
+            document.getElementById('reviewCountDisplay').textContent = reviews.length;
+
+            reviewsList.innerHTML = '';
+            if (reviews.length === 0) {
+                reviewsList.innerHTML = `<p class="text-xs text-gray-400 italic">No customer reviews yet. Be the first to review!</p>`;
+                return;
+            }
+
+            reviews.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-50 p-2.5 rounded-xl text-xs space-y-1';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-800">${r.name}</span>
+                        <span class="text-amber-400 font-bold">${'★'.repeat(r.rating)}</span>
+                    </div>
+                    <p class="text-gray-600">${r.comment}</p>
+                `;
+                reviewsList.appendChild(div);
+            });
+        }
+
+        function toggleReviewForm() {
+            document.getElementById('addReviewBox').classList.toggle('hidden');
+        }
+
+        function submitReview() {
+            if (!selectedProductForModal) return;
+            const rating = parseInt(document.getElementById('newReviewRating').value);
+            const comment = document.getElementById('newReviewComment').value.trim();
+
+            if (!comment) return;
+
+            if (!selectedProductForModal.reviews) selectedProductForModal.reviews = [];
+            selectedProductForModal.reviews.unshift({
+                name: currentUser ? currentUser.email.split('@')[0] : 'Verified Buyer',
+                rating: rating,
+                comment: comment
+            });
+
+            saveProductsToStorage();
+            renderReviews(selectedProductForModal);
+            document.getElementById('newReviewComment').value = '';
+            toggleReviewForm();
+        }
+
+        function addToCartFromModal() {
+            if (!selectedProductForModal) return;
+            
+            const existing = cart.find(item => item.id === selectedProductForModal.id);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({
+                    id: selectedProductForModal.id,
+                    title: selectedProductForModal.title,
+                    price: selectedProductForModal.price,
+                    photo: selectedProductForModal.photos[0],
+                    qty: 1
+                });
+            }
+
+            saveCartToStorage();
+            closeModal('productDetailModal');
+            addNotification(`Added "${selectedProductForModal.title.substring(0, 20)}..." to your shopping cart.`);
+        }
+
+        function buyNowFromModal() {
+            addToCartFromModal();
+            switchTab('cart');
+        }
+
+        function renderCartItems() {
+            const container = document.getElementById('cartItemsContainer');
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 text-center text-gray-400 space-y-2">
+                        <i class="fa-solid fa-cart-arrow-down text-4xl"></i>
+                        <p class="text-sm">Your shopping cart is empty.</p>
+                        <button onclick="switchTab('home')" class="bg-brand-500 text-white font-bold text-xs px-4 py-2 rounded-xl">Explore Store</button>
+                    </div>
+                `;
+                document.getElementById('cartSummarySection').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('cartSummarySection').classList.remove('hidden');
+            let subtotal = 0;
+
+            cart.forEach((item, index) => {
+                subtotal += item.price * item.qty;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100';
+
+                div.innerHTML = `
+                    <img src="${item.photo || 'https://via.placeholder.com/100'}" class="w-16 h-16 object-cover rounded-lg">
+                    <div class="flex-1 space-y-1">
+                        <h4 class="text-xs font-bold text-gray-800 line-clamp-1">${item.title}</h4>
+                        <div class="text-xs font-extrabold text-brand-500">₱${item.price.toFixed(2)}</div>
+                        
+                        <div class="flex items-center gap-2 pt-1">
+                            <button onclick="updateCartQty(${index}, -1)" class="w-6 h-6 bg-white border rounded flex items-center justify-center text-xs font-bold">-</button>
+                            <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                            <button onclick="updateCartQty(${index}, 1)" class="w-6 h-6 bg-white border rounded flex items-center justify-center text-xs font-bold">+</button>
+                        </div>
+                    </div>
+                    <button onclick="removeCartItem(${index})" class="text-gray-400 hover:text-red-500 text-sm px-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+
+            const shipping = 45.00;
+            document.getElementById('cartSubtotal').textContent = `₱${subtotal.toFixed(2)}`;
+            document.getElementById('cartShipping').textContent = `₱${shipping.toFixed(2)}`;
+            document.getElementById('cartTotal').textContent = `₱${(subtotal + shipping).toFixed(2)}`;
+        }
+
+        function updateCartQty(index, change) {
+            cart[index].qty += change;
+            if (cart[index].qty <= 0) {
+                cart.splice(index, 1);
+            }
+            saveCartToStorage();
+            renderCartItems();
+        }
+
+        function removeCartItem(index) {
+            cart.splice(index, 1);
+            saveCartToStorage();
+            renderCartItems();
+        }
+
+        function updateCartBadge() {
+            const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+            document.getElementById('cartBadge').textContent = totalItems;
+            document.getElementById('navCartBadge').textContent = totalItems;
+        }
+
+        function renderSellerCatalog() {
+            const container = document.getElementById('sellerCatalog');
+            container.innerHTML = '';
+
+            if (products.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No products in your catalog yet.</p>`;
+                return;
+            }
+
+            products.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${p.photos[0] || 'https://via.placeholder.com/80'}" class="w-12 h-12 object-cover rounded-lg">
+                        <div>
+                            <h4 class="font-bold text-gray-800 line-clamp-1">${p.title}</h4>
+                            <p class="text-brand-500 font-extrabold">₱${p.price.toFixed(2)} • Stock: ${p.stock}</p>
+                        </div>
+                    </div>
+                    <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition font-bold">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function openAddProductModal() {
+            studioUploadedPhotos = [];
+            document.getElementById('pPhotosPreview').innerHTML = '';
+            document.getElementById('productForm').reset();
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        async function handleProductSubmit(e) {
+            e.preventDefault();
+
+            if (studioUploadedPhotos.length === 0) {
+                alert('Please upload at least one product photo from your gallery.');
+                return;
+            }
+
+            const newProd = {
+                id: 'prod_' + Date.now(),
+                title: document.getElementById('pTitle').value.trim(),
+                price: parseFloat(document.getElementById('pPrice').value),
+                originalPrice: parseFloat(document.getElementById('pOriginalPrice').value) || null,
+                category: document.getElementById('pCategory').value,
+                tag: document.getElementById('pTag').value,
+                stock: parseInt(document.getElementById('pStock').value) || 10,
+                sold: parseInt(document.getElementById('pSold').value) || 0,
+                rating: 5.0,
+                description: document.getElementById('pDescription').value.trim(),
+                photos: [...studioUploadedPhotos],
+                reviews: []
+            };
+
+            products.unshift(newProd);
+            saveProductsToStorage();
+            renderProducts();
+            renderSellerCatalog();
+
+            closeModal('addProductModal');
+            addNotification(`New product "${newProd.title}" successfully added to catalog.`);
+        }
+
+        function deleteProduct(prodId) {
+            products = products.filter(p => p.id !== prodId);
+            saveProductsToStorage();
+            renderProducts();
+            renderSellerCatalog();
+        }
+
+        function setupMap() {
+            // Default center: Manila coordinates [14.5995, 120.9842]
+            leafletMap = L.map('checkoutMap').setView([14.5995, 120.9842], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(leafletMap);
+
+            leafletMarker = L.marker([14.5995, 120.9842], { draggable: true }).addTo(leafletMap);
+
+            leafletMarker.on('dragend', function (e) {
+                const coord = leafletMarker.getLatLng();
+                document.getElementById('mapAddressText').textContent = `Pinned Coordinates: ${coord.lat.toFixed(4)}, ${coord.lng.toFixed(4)}`;
+            });
+
+            leafletMap.on('click', function (e) {
+                leafletMarker.setLatLng(e.latlng);
+                document.getElementById('mapAddressText').textContent = `Pinned Coordinates: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+            });
+        }
+
+        function openCheckoutModal() {
+            if (cart.length === 0) return;
+            document.getElementById('checkoutModal').classList.remove('hidden');
+            setTimeout(() => {
+                if (leafletMap) leafletMap.invalidateSize();
+            }, 300);
+        }
+
+        function placeOrder() {
+            const name = document.getElementById('cName').value.trim();
+            const phone = document.getElementById('cPhone').value.trim();
+            const address = document.getElementById('cAddress').value.trim();
+
+            if (!name || !phone || !address) {
+                alert('Please complete your contact name, phone, and detailed address.');
+                return;
+            }
+
+            const total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0) + 45.00;
+
+            const order = {
+                id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                customer: name,
+                address: address,
+                items: [...cart],
+                total: total,
+                status: 'Processing'
+            };
+
+            orders.unshift(order);
+            saveOrdersToStorage();
+
+            // Clear cart
+            cart = [];
+            saveCartToStorage();
+
+            closeModal('checkoutModal');
+            switchTab('orders');
+            addNotification(`Order #${order.id} placed successfully! Thank you for shopping at kylejilian.`);
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            container.innerHTML = '';
+
+            if (orders.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-8">No active orders found.</p>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-50 border rounded-2xl p-4 text-xs space-y-3';
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center pb-2 border-b">
+                        <div>
+                            <span class="font-extrabold text-gray-900">${o.id}</span>
+                            <span class="text-[10px] text-gray-400 block">${o.date}</span>
+                        </div>
+                        <span class="bg-amber-100 text-amber-800 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                            <i class="fa-solid fa-truck-fast mr-1"></i> ${o.status}
+                        </span>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        ${o.items.map(i => `
+                            <div class="flex justify-between items-center text-gray-700">
+                                <span class="line-clamp-1">${i.title} (x${i.qty})</span>
+                                <span class="font-bold">₱${(i.price * i.qty).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="pt-2 border-t flex justify-between items-center font-bold text-gray-900">
+                        <span>Total Paid:</span>
+                        <span class="text-brand-500 text-sm">₱${o.total.toFixed(2)}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function openAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function handleAuthSubmit() {
+            const email = document.getElementById('authEmail').value.trim();
+            if (!email) return;
+
+            currentUser = { email: email };
+            localStorage.setItem('kj_user', JSON.stringify(currentUser));
+            updateAccountUI();
+            closeModal('authModal');
+            addNotification(`Welcome back, ${email.split('@')[0]}!`);
+        }
+
+        function updateAccountUI() {
+            if (currentUser) {
+                document.getElementById('headerUserName').textContent = currentUser.email.split('@')[0];
+                document.getElementById('accountDisplayName').textContent = currentUser.email.split('@')[0];
+                document.getElementById('accountEmailDisplay').textContent = currentUser.email;
+                document.getElementById('authModalBtn').textContent = 'Switch / Log Out Account';
+            }
+        }
+
+        function saveFirebaseSettings() {
+            const key = document.getElementById('fbApiKey').value.trim();
+            const proj = document.getElementById('fbProjectId').value.trim();
+            if (key && proj) {
+                document.getElementById('syncStatusBadge').innerHTML = `<i class="fa-solid fa-circle text-[8px] mr-1"></i> Cloud Firestore Connected`;
+                alert('Firebase Credentials Saved Successfully!');
+            }
+        }
+
+        function addNotification(msg) {
+            notifications.unshift({ msg, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+            document.getElementById('notifBadge').classList.remove('hidden');
+            document.getElementById('notifBadge').textContent = notifications.length;
+
+            const list = document.getElementById('notifList');
+            list.innerHTML = notifications.map(n => `
+                <div class="bg-gray-50 p-2 rounded-lg border text-gray-700">
+                    <p class="font-medium">${n.msg}</p>
+                    <span class="text-[9px] text-gray-400">${n.time}</span>
+                </div>
+            `).join('');
+        }
+
+        function toggleNotifications() {
+            document.getElementById('notifDrawer').classList.toggle('hidden');
+            document.getElementById('notifBadge').classList.add('hidden');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('text-brand-500');
+                } else {
+                    btn.classList.remove('text-brand-500');
+                }
+            });
+
+            if (tabId === 'cart') renderCartItems();
+            if (tabId === 'studio') renderSellerCatalog();
+            if (tabId === 'orders') renderOrders();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function startCountdown() {
+            let s = 45, m = 28, h = 4;
+            setInterval(() => {
+                s--;
+                if (s < 0) { s = 59; m--; }
+                if (m < 0) { m = 59; h--; }
+                if (h < 0) { h = 12; }
+
+                document.getElementById('timerS').textContent = s < 10 ? '0' + s : s;
+                document.getElementById('timerM').textContent = m < 10 ? '0' + m : m;
+                document.getElementById('timerH').textContent = h < 10 ? '0' + h : h;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
